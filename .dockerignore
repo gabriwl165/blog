@@ -2,6 +2,7 @@
 public/
 resources/
 themes/
+.tools/
 .hugo_build.lock
 .idea/
 .vscode/

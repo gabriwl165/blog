@@ -3,10 +3,11 @@
 ARG HUGO_VERSION=0.134.3
 ARG PAPERMOD_VERSION=v8.0
 
-# Download only the Hugo Extended binary needed to compile the site.
-FROM alpine:3.22 AS hugo
+# Official Hugo release binaries target glibc, so use Debian only for the build stage.
+FROM debian:bookworm-slim AS hugo
 ARG HUGO_VERSION
-RUN apk add --no-cache ca-certificates curl tar && \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl tar && \
+    rm -rf /var/lib/apt/lists/* && \
     curl --fail --location --retry 3 \
       --output /tmp/hugo.tar.gz \
       "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" && \
