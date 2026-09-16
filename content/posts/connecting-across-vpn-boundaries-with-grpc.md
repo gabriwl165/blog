@@ -7,8 +7,6 @@ tags: ["Go", "gRPC", "Distributed Systems"]
 categories: ["Engineering"]
 ---
 
-# Connecting Across the VPN Boundary with a Long-Lived Bidirectional gRPC Stream
-
 Integrations often need to reach systems that customers deliberately keep off the public internet. That can mean connecting an integration pipeline to a customer’s CMMS, ERP, or industrial IoT systems while those systems remain inside a private network protected by a VPN.
 
 The approach presented in this talk is to give the customer environment an Agent and let that Agent establish a long-lived, bidirectional gRPC connection to a Proxy. The Agent connects outward, registers its identity, and keeps the stream open. When the Integration Pipeline needs to perform work, it sends a request containing an Agent ID. The Proxy uses that identity to select the corresponding live session and sends the request back through the same connection.
