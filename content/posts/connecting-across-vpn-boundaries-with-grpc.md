@@ -3,8 +3,8 @@ title: "Connecting Across the VPN Boundary with a Long-Lived Bidirectional gRPC 
 date: 2026-09-16T00:00:00-03:00
 draft: true
 description: "How a long-lived bidirectional gRPC stream connects integration pipelines with systems inside customer VPNs."
-tags: ["go", "grpc", "distributed-systems", "integrations"]
-categories: ["engineering"]
+tags: ["Go", "gRPC", "Distributed Systems"]
+categories: ["Engineering"]
 ---
 
 # Connecting Across the VPN Boundary with a Long-Lived Bidirectional gRPC Stream
