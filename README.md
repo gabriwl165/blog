@@ -2,7 +2,7 @@
 
 A lightweight, self-hosted developer blog built with [Hugo Extended](https://gohugo.io/) and [PaperMod](https://github.com/adityatelange/hugo-PaperMod). Posts are Markdown files committed to Git; there is no database or application server.
 
-The project-local and containerized toolchains use **Go 1.27.1** and the pinned Hugo Extended release. The generated site is then served by a small Nginx image.
+The project-local toolchain uses **Go 1.27.1**. Docker downloads only the pinned Hugo Extended binary to compile the site, then serves the generated files with BusyBox's tiny built-in HTTP server.
 
 ## Quick start (Docker)
 
@@ -20,7 +20,7 @@ Create an optimized production image:
 docker build \
   --build-arg HUGO_BASEURL=https://blog.example.com/ \
   -t developer-blog:latest .
-docker run --rm -p 8080:80 developer-blog:latest
+docker run --rm -p 8080:8080 developer-blog:latest
 ```
 
 The published site is available at <http://localhost:8080>. Set `HUGO_BASEURL` to the final public URL before publishing, including a trailing slash.
@@ -69,13 +69,12 @@ archetypes/          Front-matter template for new posts
 assets/css/extended/ Small PaperMod-compatible Chroma refinements
 layouts/             Small compatibility override for PaperMod v8 on current Hugo
 hugo.yaml            Site, PaperMod, and Chroma configuration
-Dockerfile           Go 1.27.1 + Hugo Extended multi-stage build
+Dockerfile           Hugo Extended build plus a tiny BusyBox static server
 compose.yaml         Live-reload development service
-nginx/default.conf   Static production server configuration
 ```
 
 ## Publish
 
-Build the image above and run it behind any reverse proxy or expose port 80 directly. The final image contains only Nginx and `public/`, never source Markdown, Go tooling, a database, or runtime dependencies.
+Build the image above and expose port 8080 directly, or place it behind an existing reverse proxy if you already use one. The final image contains only BusyBox and `public/`, never source Markdown, Go tooling, a database, or runtime dependencies.
 
 Before publishing, update `baseURL`, `title`, `params.homeInfoParams`, social links, and the `menu` in `hugo.yaml`.

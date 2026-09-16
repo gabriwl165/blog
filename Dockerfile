@@ -1,14 +1,12 @@
 # syntax=docker/dockerfile:1
 
-ARG GO_VERSION=1.27.1
 ARG HUGO_VERSION=0.134.3
 ARG PAPERMOD_VERSION=v8.0
 
-# Pin the Go 1.27 toolchain, then install the matching official Hugo Extended binary.
-FROM golang:${GO_VERSION}-bookworm AS hugo
+# Download only the Hugo Extended binary needed to compile the site.
+FROM alpine:3.22 AS hugo
 ARG HUGO_VERSION
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && \
-    rm -rf /var/lib/apt/lists/* && \
+RUN apk add --no-cache ca-certificates curl tar && \
     curl --fail --location --retry 3 \
       --output /tmp/hugo.tar.gz \
       "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" && \
@@ -36,7 +34,8 @@ COPY --from=theme /themes/PaperMod /opt/themes/PaperMod
 COPY . .
 RUN hugo --gc --minify --themesDir /opt/themes --baseURL "${HUGO_BASEURL}"
 
-FROM nginx:1.29-alpine AS production
-COPY nginx/default.conf /etc/nginx/conf.d/default.conf
-COPY --from=site-builder /src/public /usr/share/nginx/html
-EXPOSE 80
+# BusyBox serves the compiled files directly; no reverse proxy is required.
+FROM busybox:1.37.0-uclibc AS production
+COPY --from=site-builder /src/public /site
+EXPOSE 8080
+CMD ["httpd", "-f", "-p", "8080", "-h", "/site"]

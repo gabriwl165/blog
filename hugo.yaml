@@ -50,9 +50,6 @@ params:
   ShowToc: true
   TocOpen: false
   DateFormat: "2006-01-02"
-  homeInfoParams:
-    Title: "Developer Notes"
-    Content: "A small, fast, self-hosted collection of engineering notes."
 
 menu:
   main:
