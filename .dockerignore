@@ -1,0 +1,7 @@
+.git
+public/
+resources/
+themes/
+.hugo_build.lock
+.idea/
+.vscode/

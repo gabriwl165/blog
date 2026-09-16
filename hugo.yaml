@@ -1,0 +1,70 @@
+baseURL: "https://blog.example.com/"
+languageCode: "en-us"
+title: "Developer Notes"
+theme: "PaperMod"
+enableRobotsTXT: true
+enableEmoji: true
+
+pagination:
+  pagerSize: 10
+
+taxonomies:
+  tag: tags
+  category: categories
+  series: series
+
+permalinks:
+  posts: "/posts/:year/:month/:slug/"
+
+markup:
+  highlight:
+    # Chroma runs during Hugo's build; no client-side highlighter is needed.
+    codeFences: true
+    guessSyntax: false
+    lineNos: true
+    lineNumbersInTable: false
+    # Inline Chroma styles keep the theme-independent palette in the generated HTML.
+    noClasses: true
+    style: "catppuccin-frappe"
+    tabWidth: 2
+  goldmark:
+    renderer:
+      unsafe: false
+  tableOfContents:
+    startLevel: 2
+    endLevel: 3
+    ordered: false
+
+params:
+  hideFooter: true
+  env: production
+  description: "Practical notes on software engineering."
+  defaultTheme: auto
+  disableThemeToggle: false
+  ShowReadingTime: true
+  ShowShareButtons: false
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowWordCount: true
+  ShowToc: true
+  TocOpen: false
+  DateFormat: "2006-01-02"
+  homeInfoParams:
+    Title: "Developer Notes"
+    Content: "A small, fast, self-hosted collection of engineering notes."
+
+menu:
+  main:
+    - identifier: posts
+      name: Posts
+      url: /posts/
+      weight: 10
+    - identifier: tags
+      name: Tags
+      url: /tags/
+      weight: 20
+    - identifier: archives
+      name: Archive
+      url: /archives/
+      weight: 30
