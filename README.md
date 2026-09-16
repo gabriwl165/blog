@@ -18,7 +18,7 @@ Create an optimized production image:
 
 ```sh
 docker build \
-  --build-arg HUGO_BASEURL=https://blog.example.com/ \
+  --build-arg HUGO_BASEURL=https://blog.gabrielmarcelino.com/ \
   -t developer-blog:latest .
 docker run --rm -p 8080:8080 developer-blog:latest
 ```

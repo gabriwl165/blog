@@ -29,7 +29,7 @@ ENTRYPOINT ["hugo"]
 CMD ["server", "--bind", "0.0.0.0", "--baseURL", "http://localhost:1313/", "--themesDir", "/opt/themes", "--buildDrafts", "--disableFastRender"]
 
 FROM hugo AS site-builder
-ARG HUGO_BASEURL=https://blog.example.com/
+ARG HUGO_BASEURL=https://blog.gabrielmarcelino.com/
 WORKDIR /src
 COPY --from=theme /themes/PaperMod /opt/themes/PaperMod
 COPY . .
