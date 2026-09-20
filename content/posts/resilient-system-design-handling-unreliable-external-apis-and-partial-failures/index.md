@@ -1,7 +1,7 @@
 ---
 title: "Resilient System Design: Handling Unreliable External APIs and Partial Failures"
 date: 2026-09-19T00:00:00-03:00
-draft: true
+draft: false
 description: "Design external API integrations that fail safely, recover predictably, and expose useful outcomes to callers."
 tags: ["distributed-systems", "api-design", "reliability"]
 categories: ["engineering"]
