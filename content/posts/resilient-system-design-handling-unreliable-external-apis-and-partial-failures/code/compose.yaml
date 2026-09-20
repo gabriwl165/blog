@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: broker
+      POSTGRES_USER: broker
+      POSTGRES_PASSWORD: broker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./migrations/001_create_transaction_history.up.sql:/docker-entrypoint-initdb.d/001_create_transaction_history.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U broker -d broker"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  purchase-api:
+    build: .
+    environment:
+      DATABASE_URL: postgres://broker:broker@postgres:5432/broker?sslmode=disable
+      BROKER_URL: http://mock-broker:8090
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mock-broker:
+        condition: service_started
+
+  mock-broker:
+    build: .
+    command: ["mock-broker"]
+
+  reconciliation-worker:
+    build: .
+    command: ["reconciliation-worker"]
+    environment:
+      DATABASE_URL: postgres://broker:broker@postgres:5432/broker?sslmode=disable
+      BROKER_URL: http://mock-broker:8090
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mock-broker:
+        condition: service_started
+
+volumes:
+  postgres-data:

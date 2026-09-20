@@ -15,7 +15,8 @@ Do not duplicate configuration in a post. If behavior is unclear, inspect these 
 
 ## Creating a post
 
-- Store posts as flat, kebab-case Markdown files: `content/posts/my-post.md`.
+- Store each post as a Hugo leaf bundle in a kebab-case directory: `content/posts/my-post/index.md`.
+- Keep post-specific images and other media in `content/posts/my-post/assets/`, and supporting source material in `content/posts/my-post/code/`. Do not put secrets or private material in either directory because Hugo publishes page resources.
 - Use the following YAML front matter and keep new posts as drafts unless publication is explicitly requested:
 
 ```yaml {linenos=false}

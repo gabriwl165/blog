@@ -43,3 +43,8 @@
   text-align: right;
   user-select: none;
 }
+
+/* The post navigation has a single previous-post link. */
+.paginav .prev:only-child {
+  width: 100%;
+}
