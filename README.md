@@ -44,10 +44,31 @@ make serve
 ## Write a post
 
 ```sh
-hugo new content/posts/my-post.md
+hugo new content/posts/my-post/index.md
 ```
 
-Update the front matter, change `draft: true` to `false`, and write Markdown. The starter post at `content/posts/hello-developer-blog.md` demonstrates Go, Python, Java, Dockerfile, YAML, and shell fences.
+Each post is a Hugo leaf bundle: keep the published article in `index.md`, its
+images in `assets/`, and any supporting source material in `code/`.
+
+```text
+content/posts/my-post/
+├── index.md       # Published article
+├── assets/        # Post-specific images and other media
+└── code/          # Supporting source files; not rendered as standalone pages
+```
+
+Reference an image from the article with a relative path:
+
+```md
+![Diagram of the request flow](assets/request-flow.png)
+```
+
+Files in `code/` are page resources, so Hugo does not render them as individual
+pages. They are included in the generated site as static resources; do not put
+secrets or private source material there. Keep material that must never be
+published outside `content/` (for example, in `examples/my-post/`).
+
+Update the front matter, change `draft: true` to `false`, and write Markdown.
 
 Code is highlighted at build time by Hugo's Chroma integration: no browser-side syntax-highlighting library is shipped. Line numbers are enabled globally, and individual fences may refine them. Add `filename` to show a file label above the snippet:
 
@@ -64,7 +85,7 @@ Useful Chroma language names include `go`, `python`, `java`, `dockerfile`, `yaml
 ## Project layout
 
 ```text
-content/             Markdown pages and posts
+content/             Markdown pages and leaf-bundle posts
 archetypes/          Front-matter template for new posts
 assets/css/extended/ Small PaperMod-compatible Chroma refinements
 layouts/             Small compatibility override for PaperMod v8 on current Hugo

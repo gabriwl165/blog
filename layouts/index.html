@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="{{ site.Language.LanguageCode | default "en" }}">
+  <head>
+    <meta charset="utf-8">
+    <title>{{ site.Title }}</title>
+    {{ $dest := "posts/" | relURL }}
+    <link rel="canonical" href="{{ "posts/" | absURL }}">
+    <meta http-equiv="refresh" content="0; url={{ $dest }}">
+    <script>window.location.replace({{ $dest | jsonify | safeJS }});</script>
+  </head>
+  <body>
+    <p>Redirecting to <a href="{{ $dest }}">Posts</a>.</p>
+  </body>
+</html>
