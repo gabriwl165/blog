@@ -1,7 +1,7 @@
 ---
 title: "Real-Time Market Data Streaming for Beginners"
 date: 2026-09-24T00:00:00-03:00
-draft: true
+draft: false
 description: "Learn the market-data concepts behind a real-time system for quotes, trades, and price charts."
 tags: ["distributed-systems", "market-data", "fintech"]
 categories: ["engineering"]
