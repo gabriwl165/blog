@@ -152,3 +152,41 @@ A durable event log is a later addition for replay and recovery, not a required 
 - The **durable path** stores events asynchronously for recovery or historical features.
 
 The trade-off is deliberate: the newest live update can reach a client before it has been durably stored, but a slow disk or broker does not delay every market update.
+
+## Draft the monolithic architecture
+
+The first version is one deployable application. Its internal parts have separate responsibilities, but they run in the same process and share the same CPU and memory.
+
+```text {linenos=false}
+market-data feed
+      |
+      v
++--------------------------- market-data application ---------------------------+
+|  feed adapter -> normalizer -> current quote state -> subscription lookup      |
+|                       |                                                        |
+|                       +-> one-minute bar aggregator                            |
+|                                                                                |
+|  WebSocket server <- outbound client queues <- interested client sessions      |
++-------------------------------------------------------------------------------+
+      |
+      v
+WebSocket clients
+```
+
+The **feed adapter** is responsible for maintaining a connection to a market-data provider and decoding its messages. The **normalizer** converts each provider-specific message into the same internal shape, for example: instrument ID, event type, event timestamp, price, and quantity.
+
+After normalization, the application updates its in-memory quote state. A quote event changes the latest bid and ask for an instrument. A trade event also goes to the one-minute bar aggregator, which updates that instrument's open, high, low, close, and volume for the current minute.
+
+The WebSocket server tracks each client's subscriptions. When an update for `AAPL` arrives, the subscription lookup finds only clients that requested `AAPL`; the application places the appropriate message in each client's outbound queue.
+
+### Walk through one trade
+
+Suppose the feed reports that 100 Apple shares traded at $200.11.
+
+1. The feed adapter receives and decodes the provider's message.
+2. The normalizer produces a canonical `trade` event for `AAPL` at $200.11, with quantity 100.
+3. The bar aggregator updates the current one-minute `AAPL` bar: its high, low, close, volume, or all of them may change.
+4. The subscription lookup finds clients watching Apple trades and Apple one-minute bars.
+5. The WebSocket server writes a trade update and, when applicable, the revised current-bar update to those clients.
+
+This flow is synchronous in the sense that one application owns it end to end. It does not require separate services or a message broker, which keeps the first version approachable. The next section will use this diagram to identify where contention and slow-client pressure appear as traffic grows.
