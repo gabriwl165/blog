@@ -235,6 +235,21 @@ func RunFeed(ctx context.Context, reader FeedReader, output chan<- MarketEvent) 
 	}
 }
 
+// ProcessEvents is the other end of the channel in the monolithic application.
+func ProcessEvents(ctx context.Context, input <-chan MarketEvent, process func(MarketEvent)) error {
+	for {
+		select {
+		case event, open := <-input:
+			if !open {
+				return nil
+			}
+			process(event) // update state, aggregate a bar, and notify subscribers
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+}
+
 func normalize(raw RawMessage) (MarketEvent, error) {
 	eventType := QuoteEvent
 	if raw.Kind == "t" {
@@ -253,7 +268,7 @@ func normalize(raw RawMessage) (MarketEvent, error) {
 }
 ```
 
-`RunFeed` sends normalized events through a Go channel. In the monolith, the next loop can read from that channel, update in-memory state, aggregate bars for trades, and notify subscribed clients. A production adapter would also add validation, metrics, sequence-gap detection, and a reconnect loop; those details are deliberately outside this first draft.
+`RunFeed` sends normalized events through a Go channel. `ProcessEvents` receives them on the other end. The `output <- event` case waits until `ProcessEvents` is ready when the channel is unbuffered; with a bounded buffer, it waits only after that buffer is full. This is a simple form of backpressure: the application slows feed reading instead of letting queued events consume memory without limit. A production adapter would also add validation, metrics, sequence-gap detection, and a reconnect loop; those details are deliberately outside this first draft.
 
 After normalization, the application updates its in-memory quote state. A quote event changes the latest bid and ask for an instrument. A trade event also goes to the one-minute bar aggregator, which updates that instrument's open, high, low, close, and volume for the current minute.
 
