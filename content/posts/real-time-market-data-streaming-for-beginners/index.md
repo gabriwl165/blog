@@ -175,6 +175,86 @@ WebSocket clients
 
 The **feed adapter** is responsible for maintaining a connection to a market-data provider and decoding its messages. The **normalizer** converts each provider-specific message into the same internal shape, for example: instrument ID, event type, event timestamp, price, and quantity.
 
+The following illustrative Go code shows that boundary. `FeedReader` hides the provider's connection and wire format; each provider gets its own implementation. The rest of the application receives the same `MarketEvent` regardless of where the data came from.
+
+```go {filename="internal/market/adapter.go",linenos=inline}
+package market
+
+import (
+	"context"
+	"fmt"
+	"time"
+)
+
+type EventType string
+
+const (
+	QuoteEvent EventType = "quote"
+	TradeEvent EventType = "trade"
+)
+
+// RawMessage is what one provider-specific decoder produces.
+type RawMessage struct {
+	Symbol    string
+	Kind      string // for example, "q" or "t"
+	Price     float64
+	Quantity  int64
+	EventTime time.Time
+}
+
+type MarketEvent struct {
+	InstrumentID string
+	Type         EventType
+	Price        float64
+	Quantity     int64
+	EventTime    time.Time
+}
+
+// FeedReader owns the connection, decoding, and reconnect policy for one feed.
+type FeedReader interface {
+	Read(context.Context) (RawMessage, error)
+}
+
+func RunFeed(ctx context.Context, reader FeedReader, output chan<- MarketEvent) error {
+	for {
+		raw, err := reader.Read(ctx)
+		if err != nil {
+			return err
+		}
+
+		event, err := normalize(raw)
+		if err != nil {
+			continue // production code would count and log invalid messages
+		}
+
+		select {
+		case output <- event:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+}
+
+func normalize(raw RawMessage) (MarketEvent, error) {
+	eventType := QuoteEvent
+	if raw.Kind == "t" {
+		eventType = TradeEvent
+	} else if raw.Kind != "q" {
+		return MarketEvent{}, fmt.Errorf("unknown event kind %q", raw.Kind)
+	}
+
+	return MarketEvent{
+		InstrumentID: raw.Symbol, // a real system maps this to a canonical ID
+		Type:         eventType,
+		Price:        raw.Price,
+		Quantity:     raw.Quantity,
+		EventTime:    raw.EventTime,
+	}, nil
+}
+```
+
+`RunFeed` sends normalized events through a Go channel. In the monolith, the next loop can read from that channel, update in-memory state, aggregate bars for trades, and notify subscribed clients. A production adapter would also add validation, metrics, sequence-gap detection, and a reconnect loop; those details are deliberately outside this first draft.
+
 After normalization, the application updates its in-memory quote state. A quote event changes the latest bid and ask for an instrument. A trade event also goes to the one-minute bar aggregator, which updates that instrument's open, high, low, close, and volume for the current minute.
 
 The WebSocket server tracks each client's subscriptions. When an update for `AAPL` arrives, the subscription lookup finds only clients that requested `AAPL`; the application places the appropriate message in each client's outbound queue.
