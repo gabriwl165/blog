@@ -50,37 +50,30 @@ The challenge is volume and speed. A system may receive more than 100,000 update
 
 ## Define what the system must do
 
-Before choosing technologies, turn the problem into concrete requirements. This separates the features users need from the quality targets the system must meet.
+Before choosing technologies, turn the problem into concrete requirements. For a 40-minute system-design interview, keep this list intentionally small: it defines the core flow without trying to design every production feature.
 
 ### Functional requirements
 
 The system should:
 
-- Ingest real-time quote and trade updates from stock, options, and cryptocurrency market-data feeds.
-- Convert each feed's message format, symbol names, and timestamps into one consistent internal format.
-- Let a connected client subscribe and unsubscribe from quotes, trades, and bars for selected instruments.
-- Deliver a client only the updates for its subscriptions over WebSocket. Server-Sent Events (SSE) can be offered as a simpler, one-way alternative when required.
-- Build one-minute, five-minute, and daily OHLCV bars from trades. OHLCV means open, high, low, close, and volume.
-- Send updates for a bar while its time window is open, then mark it final after the allowed delay for late events has passed.
-- Detect missing or duplicate feed messages where the data source provides sequence numbers.
-- Let a client resynchronize from a fresh quote or bar snapshot after it misses stateful updates.
-- Enforce a client's market-data entitlements before sending a feed that it is not allowed to receive.
-- Store normalized events and finalized bars for replay, historical charts, and recovery.
+- Ingest real-time quotes and trades from the supplied market-data feeds.
+- Normalize each feed into one internal event format with a canonical instrument ID and event timestamp.
+- Let a client subscribe to quotes, trades, and one-minute OHLCV bars for selected instruments over WebSocket. OHLCV means open, high, low, close, and volume.
+- Build and publish the current one-minute bar from incoming trades.
+- Detect feed disconnects or missing sequence numbers, then recover with a snapshot or resynchronization when the feed supports it.
 
 ### Non-functional requirements
 
-The system should also meet measurable operational goals. The exact numbers depend on the product, but a first design could target:
+The system should also meet a few measurable operational goals:
 
 | Area | Example target |
 | --- | --- |
-| Ingest rate | Sustain 100,000 normalized events per second, with room for short bursts. |
-| Connected clients | Support thousands of concurrent WebSocket connections. |
-| Internal latency | Process and route a normal event within one millisecond inside the same region. |
-| Availability | Keep delivery running through an individual worker or feed-handler failure. |
-| Isolation | A slow client must not increase latency or memory use without limit for other clients. |
-| Ordering | Preserve a useful order for each instrument and source, rather than inventing one global order. |
-| Data correctness | Detect gaps, deduplicate events where possible, and publish bar corrections for late trades. |
-| Recovery | Restore current state and resume processing without losing the durable event history. |
-| Observability | Measure feed health, processing lag, queue depth, dropped updates, and end-to-end latency. |
+| Throughput | Sustain 100,000 incoming updates per second, including short bursts. |
+| Connections | Support thousands of concurrent WebSocket clients. |
+| Internal latency | Process and route a normal event in under one millisecond within one region. |
+| Slow clients | Keep client queues bounded; send the latest quote rather than every outdated quote. |
+| Ordering | Preserve event order for one instrument where the feed provides it. |
 
-The one-millisecond goal applies to the service's internal work, not necessarily to a person's screen. A user on the public internet can experience a larger delay because of network distance, browser scheduling, and connection quality.
+The one-millisecond goal applies to the service's internal work, not necessarily to a person's screen. Network distance, browser scheduling, and connection quality can add noticeable delay for a user on the public internet.
+
+Features such as market-data licensing, detailed historical storage, multi-region deployment, and late-bar corrections are important production concerns, but are reasonable follow-up discussion topics if time remains.
