@@ -120,9 +120,35 @@ This is the strongest fit for the stated throughput, latency, and slow-client re
 
 ## Recommended interview design
 
-Start with Option 3, then explain that a durable event log from Option 2 can be added beside the real-time path for replay and recovery. This gives the design two paths:
+Start with Option 1. It is enough to explain the core functional requirements and gives the interviewer a concrete baseline:
+
+```text
+market feed -> one application -> WebSocket clients
+                 |
+                 -> one-minute bar aggregation
+```
+
+The application receives a market update, normalizes it, updates the current one-minute bar, and sends it to subscribed clients. For a prototype or a small internal tool, this is often the right design because it is easy to build and operate.
+
+Then use the stated scale targets to expose its bottlenecks:
+
+- Ingesting market data, updating bars, and writing to WebSocket connections compete for the same process's CPU.
+- Slow clients can make outbound queues grow and consume the application's memory.
+- One process has a practical throughput limit and a restart disconnects every client.
+
+Only after naming those limits should the design evolve to Option 3:
+
+```text
+feed handlers -> instrument partitions -> edge fan-out workers -> WebSocket clients
+                        |
+                        -> one-minute bar aggregation
+```
+
+Partitions divide instruments among workers and preserve a useful order for each instrument. Edge fan-out workers own client connections, so their bounded queues and quote coalescing do not slow ingestion or bar aggregation.
+
+A durable event log is a later addition for replay and recovery, not a required component of the first diagram. When it becomes necessary, keep it beside the immediate delivery path:
 
 - The **hot path** processes a market update in memory and sends it to interested clients with minimal delay.
-- The **durable path** stores events asynchronously so the system can recover or build historical features later.
+- The **durable path** stores events asynchronously for recovery or historical features.
 
-Keeping durable storage off the immediate delivery path is the main trade-off: the newest live update can reach a client before it has been durably stored. In exchange, a slow disk or broker does not unnecessarily delay every market update.
+The trade-off is deliberate: the newest live update can reach a client before it has been durably stored, but a slow disk or broker does not delay every market update.
