@@ -77,3 +77,52 @@ The system should also meet a few measurable operational goals:
 The one-millisecond goal applies to the service's internal work, not necessarily to a person's screen. Network distance, browser scheduling, and connection quality can add noticeable delay for a user on the public internet.
 
 Features such as market-data licensing, detailed historical storage, multi-region deployment, and late-bar corrections are important production concerns, but are reasonable follow-up discussion topics if time remains.
+
+## Choose a design that fits the requirements
+
+There is no single mandatory architecture. The right choice depends on how much traffic the system must handle, how quickly it must respond, and how much operational complexity the team can support. Here are three reasonable approaches.
+
+### Option 1: One application does everything
+
+One service connects to the feeds, normalizes updates, builds bars, and writes directly to every connected WebSocket client.
+
+| Advantages | Trade-offs |
+| --- | --- |
+| Fastest to build and easiest for a small team to understand. | One process becomes a bottleneck as feeds and clients grow. |
+| No extra broker or distributed coordination is required. | A slow client can consume memory or delay work unless queues are carefully bounded. |
+| Good starting point for a prototype or a small internal tool. | Restarting the service interrupts both feed processing and all client connections. |
+
+This option can satisfy the functional requirements at low volume. It is a poor long-term fit for the 100,000-updates-per-second target because every concern competes for the same CPU and memory.
+
+### Option 2: Put a message broker in the middle
+
+Feed handlers normalize events and publish them to a broker. Separate workers consume those events to build bars and distribute updates to clients. A broker is software that receives messages from one service and makes them available to other services.
+
+| Advantages | Trade-offs |
+| --- | --- |
+| Separates ingest, bar building, and client delivery so each can scale independently. | Adds operational work: topics, partitions, retention, monitoring, and failure recovery. |
+| A durable broker log can replay events after a worker restart. | A broker adds hops, which can increase latency. |
+| Consumers can be added later for storage, alerts, or analytics. | Ordering is normally guaranteed only within a partition, not across all instruments. |
+
+Kafka is a common choice when durable replay is the main goal. A lighter broker such as NATS can be attractive when low-latency delivery is more important than retaining every message. In either case, clients should connect to dedicated WebSocket workers rather than directly to the broker.
+
+### Option 3: Partition by instrument and use edge fan-out workers
+
+Route all updates for one instrument, such as `AAPL`, to the same partition worker. That worker owns the current quote and one-minute bar for its assigned instruments. It publishes updates to edge fan-out workers, which manage client WebSocket connections and subscriptions.
+
+| Advantages | Trade-offs |
+| --- | --- |
+| Preserves a useful order for each instrument without a global lock. | Partition assignment and rebalancing are more complex than a single service. |
+| Scales by adding workers and assigning more instrument partitions. | A heavily traded symbol can make one partition hot and may need special handling. |
+| Keeps slow-client queues away from feed processing and bar aggregation. | Requires coordination to route an update only to edge workers with interested clients. |
+
+This is the strongest fit for the stated throughput, latency, and slow-client requirements. The partition worker should be a single writer for its instruments: it updates their state without competing with another worker. Edge workers apply the slow-client policy by keeping only the newest quote for an instrument when a client falls behind.
+
+## Recommended interview design
+
+Start with Option 3, then explain that a durable event log from Option 2 can be added beside the real-time path for replay and recovery. This gives the design two paths:
+
+- The **hot path** processes a market update in memory and sends it to interested clients with minimal delay.
+- The **durable path** stores events asynchronously so the system can recover or build historical features later.
+
+Keeping durable storage off the immediate delivery path is the main trade-off: the newest live update can reach a client before it has been durably stored. In exchange, a slow disk or broker does not unnecessarily delay every market update.
